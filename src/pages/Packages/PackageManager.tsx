@@ -26,7 +26,17 @@ export default function PackageManager({ categoryName }: PackageManagerProps) {
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, "store"), where("category", "==", categoryName));
+      const categoryVariants = [categoryName];
+      if (categoryName.toLowerCase() === "vip package") {
+        categoryVariants.push("VIP Package", "Vip Package", "VIP", "Vip");
+      } else if (categoryName.toLowerCase() === "vvip package") {
+        categoryVariants.push("VVIP Package", "Vvip Package", "VVIP", "Vvip");
+      }
+      const uniqueVariants = Array.from(new Set(categoryVariants));
+      const q = uniqueVariants.length > 1
+        ? query(collection(db, "store"), where("category", "in", uniqueVariants))
+        : query(collection(db, "store"), where("category", "==", categoryName));
+
       const snap = await getDocs(q);
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Gift);
       setPackages(data.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));

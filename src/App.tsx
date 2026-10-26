@@ -212,6 +212,30 @@ export default function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/vip-package" element={
+                <ProtectedRoute allowedRoles={[ROLES.MOTHER]}>
+                  <PackageManager categoryName="Vip Package" />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/vip-purchase" element={
+                <ProtectedRoute allowedRoles={[ROLES.MOTHER]}>
+                  <PackagePurchase categoryName="Vip Package" />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/vvip-package" element={
+                <ProtectedRoute allowedRoles={[ROLES.MOTHER]}>
+                  <PackageManager categoryName="Vvip Package" />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/vvip-purchase" element={
+                <ProtectedRoute allowedRoles={[ROLES.MOTHER]}>
+                  <PackagePurchase categoryName="Vvip Package" />
+                </ProtectedRoute>
+              } />
+
               <Route path="/room-skins" element={
                 <ProtectedRoute allowedRoles={[ROLES.MOTHER, ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
                   <RoomSkinManager />

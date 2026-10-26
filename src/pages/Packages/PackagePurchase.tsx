@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Crown,
   Palette,
@@ -89,7 +89,17 @@ export default function PackagePurchase({
   useEffect(() => {
     const fetchCategoryPackages = async () => {
       try {
-        const q = query(collection(db, "store"), where("category", "==", categoryName));
+        const categoryVariants = [categoryName];
+        if (categoryName.toLowerCase() === "vip package") {
+          categoryVariants.push("VIP Package", "Vip Package", "VIP", "Vip");
+        } else if (categoryName.toLowerCase() === "vvip package") {
+          categoryVariants.push("VVIP Package", "Vvip Package", "VVIP", "Vvip");
+        }
+        const uniqueVariants = Array.from(new Set(categoryVariants));
+        const q = uniqueVariants.length > 1
+          ? query(collection(db, "store"), where("category", "in", uniqueVariants))
+          : query(collection(db, "store"), where("category", "==", categoryName));
+
         const snap = await getDocs(q);
         const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Gift[];
         setPackages(data);
@@ -103,14 +113,27 @@ export default function PackagePurchase({
     fetchCategoryPackages();
   }, [categoryName]);
 
+  const getUserAddon = useCallback((u: any) => {
+    if (!u || !u.activeAddOns) return null;
+    let addon = u.activeAddOns[categoryName];
+    if (!addon && categoryName.toLowerCase().includes("vip")) {
+      if (categoryName.toLowerCase().startsWith("vvip")) {
+        addon = u.activeAddOns["Vvip Package"] || u.activeAddOns["VVIP Package"] || u.activeAddOns["Vvip"] || u.activeAddOns["VVIP"];
+      } else {
+        addon = u.activeAddOns["Vip Package"] || u.activeAddOns["VIP Package"] || u.activeAddOns["Vip"] || u.activeAddOns["VIP"];
+      }
+    }
+    return addon;
+  }, [categoryName]);
+
   // Filter users who ALREADY have this package active
   const activePackageUsers = useMemo(() => {
     return users.filter((u) => {
-      const addon = u?.activeAddOns?.[categoryName];
+      const addon = getUserAddon(u);
       if (!addon) return false;
       return Boolean(typeof addon === "string" ? addon : addon.imageUrl || addon.imageURL);
     });
-  }, [users, categoryName]);
+  }, [users, getUserAddon]);
 
   // Table search filtering on active users
   const filteredActiveUsers = useMemo(() => {
@@ -213,9 +236,22 @@ export default function PackagePurchase({
     );
 
     try {
-      await updateDoc(doc(db, "users", userToDelete.uid), {
+      const deletePayload: Record<string, any> = {
         [`activeAddOns.${categoryName}`]: deleteField(),
-      });
+      };
+      if (categoryName.toLowerCase() === "vip package") {
+        deletePayload["activeAddOns.VIP Package"] = deleteField();
+        deletePayload["activeAddOns.Vip Package"] = deleteField();
+        deletePayload["activeAddOns.VIP"] = deleteField();
+        deletePayload["activeAddOns.Vip"] = deleteField();
+      } else if (categoryName.toLowerCase() === "vvip package") {
+        deletePayload["activeAddOns.VVIP Package"] = deleteField();
+        deletePayload["activeAddOns.Vvip Package"] = deleteField();
+        deletePayload["activeAddOns.VVIP"] = deleteField();
+        deletePayload["activeAddOns.Vvip"] = deleteField();
+      }
+
+      await updateDoc(doc(db, "users", userToDelete.uid), deletePayload);
       toast.success(`${shortName} Package removed successfully`, { id: tid });
       setUserToDelete(null);
     } catch (e: any) {
@@ -233,7 +269,8 @@ export default function PackagePurchase({
     );
     try {
       const now = new Date();
-      const currentExpiry = user?.activeAddOns?.[categoryName]?.expiresAt;
+      const currentAddon = getUserAddon(user);
+      const currentExpiry = currentAddon?.expiresAt;
       let baseDate = now;
 
       if (currentExpiry) {
@@ -414,7 +451,7 @@ export default function PackagePurchase({
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-sm">
                 {filteredActiveUsers.map((user) => {
-                  const addon = user?.activeAddOns?.[categoryName];
+                  const addon = getUserAddon(user);
                   const imgUrl = typeof addon === "string" ? addon : addon?.imageUrl || addon?.imageURL;
                   const expiryInfo = getExpiryDetails(addon?.expiresAt);
 
@@ -676,7 +713,7 @@ export default function PackagePurchase({
                 ) : (
                   <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
                     {filteredModalUsers.map((u) => {
-                      const hasActive = Boolean(u?.activeAddOns?.[categoryName]);
+                      const hasActive = Boolean(getUserAddon(u));
                       const durationTag =
                         selectedDuration === 7 ? "7D" : selectedDuration === 30 ? "1M" : "365D";
 

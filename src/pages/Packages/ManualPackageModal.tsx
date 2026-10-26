@@ -108,11 +108,24 @@ export const ManualPackageModal = ({
     }
   }, [isOpen]);
 
+  const getUserAddon = (u: any) => {
+    if (!u || !u.activeAddOns) return null;
+    let addon = u.activeAddOns[categoryName];
+    if (!addon && categoryName.toLowerCase().includes("vip")) {
+      if (categoryName.toLowerCase().startsWith("vvip")) {
+        addon = u.activeAddOns["Vvip Package"] || u.activeAddOns["VVIP Package"] || u.activeAddOns["Vvip"] || u.activeAddOns["VVIP"];
+      } else {
+        addon = u.activeAddOns["Vip Package"] || u.activeAddOns["VIP Package"] || u.activeAddOns["Vip"] || u.activeAddOns["VIP"];
+      }
+    }
+    return addon;
+  };
+
   // Filter users
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return users.filter((u) => {
-      const activeItem = u?.activeAddOns?.[categoryName];
+      const activeItem = getUserAddon(u);
       const hasActive = Boolean(
         activeItem &&
           (typeof activeItem === "string"
@@ -142,7 +155,7 @@ export const ManualPackageModal = ({
   if (!isOpen) return null;
 
   // Active package of selected user safely extracted
-  const userActiveAddon = selectedUser?.activeAddOns?.[categoryName];
+  const userActiveAddon = getUserAddon(selectedUser);
   const hasCurrentActive = Boolean(
     userActiveAddon &&
       (typeof userActiveAddon === "string"
@@ -243,9 +256,22 @@ export const ManualPackageModal = ({
     setIsProcessing(true);
     const tid = toast.loading(`Removing ${categoryName}...`);
     try {
-      await updateDoc(doc(db, "users", selectedUser.uid), {
+      const deletePayload: Record<string, any> = {
         [`activeAddOns.${categoryName}`]: deleteField(),
-      });
+      };
+      if (categoryName.toLowerCase() === "vip package") {
+        deletePayload["activeAddOns.VIP Package"] = deleteField();
+        deletePayload["activeAddOns.Vip Package"] = deleteField();
+        deletePayload["activeAddOns.VIP"] = deleteField();
+        deletePayload["activeAddOns.Vip"] = deleteField();
+      } else if (categoryName.toLowerCase() === "vvip package") {
+        deletePayload["activeAddOns.VVIP Package"] = deleteField();
+        deletePayload["activeAddOns.Vvip Package"] = deleteField();
+        deletePayload["activeAddOns.VVIP"] = deleteField();
+        deletePayload["activeAddOns.Vvip"] = deleteField();
+      }
+
+      await updateDoc(doc(db, "users", selectedUser.uid), deletePayload);
 
       toast.success(
         `${categoryName} successfully removed from ${
@@ -385,7 +411,7 @@ export const ManualPackageModal = ({
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto pr-1">
                   {filteredUsers.map((u) => {
-                    const addon = u?.activeAddOns?.[categoryName];
+                    const addon = getUserAddon(u);
                     const hasActive = Boolean(
                       addon &&
                         (typeof addon === "string" ? addon : addon?.imageUrl || addon?.imageURL)

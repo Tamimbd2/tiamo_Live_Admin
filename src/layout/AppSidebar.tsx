@@ -171,6 +171,30 @@ const navItems: NavItem[] = [
         allowedRoles: [ROLES.MOTHER],
       },
       {
+        name: "Vip Package",
+        path: "/vip-package",
+        icon: <Crown size={18} />,
+        allowedRoles: [ROLES.MOTHER],
+      },
+      {
+        name: "Vip Purchase",
+        path: "/vip-purchase",
+        icon: <ShoppingBag size={18} />,
+        allowedRoles: [ROLES.MOTHER],
+      },
+      {
+        name: "Vvip Package",
+        path: "/vvip-package",
+        icon: <Crown size={18} />,
+        allowedRoles: [ROLES.MOTHER],
+      },
+      {
+        name: "Vvip Purchase",
+        path: "/vvip-purchase",
+        icon: <ShoppingBag size={18} />,
+        allowedRoles: [ROLES.MOTHER],
+      },
+      {
         name: "Room Skins",
         path: "/room-skins",
         icon: <Palette size={18} />,
