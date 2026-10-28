@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { toast } from "react-hot-toast";
 import { LuLock, LuMail, LuEye, LuEyeOff } from "react-icons/lu";
 import { auth } from "../lib/firebase";
-import belloLogo from "../../assets/Bello.png";
+import tiamoLogo from "../../assets/Tiamo.png";
 
 const SignIn: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -40,14 +40,14 @@ const SignIn: React.FC = () => {
           <div className="flex justify-center mb-4">
             <div className="w-24 h-24 bg-white/80 dark:bg-white/10 rounded-3xl p-3 shadow-xl shadow-brand-500/10 border border-brand-500/20 flex items-center justify-center">
               <img
-                src={belloLogo}
-                alt="Bello Live Pro Logo"
+                src={tiamoLogo}
+                alt="Tiamo Live Logo"
                 className="w-full h-full object-contain"
               />
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl font-black text-brand-500 dark:text-brand-400">
-            Bello Live Pro
+            Tiamo Live
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
             Enter your credentials to access the management dashboard

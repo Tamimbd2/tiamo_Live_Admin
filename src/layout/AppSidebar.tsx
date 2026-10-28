@@ -24,7 +24,7 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { ROLES } from "../routes/ProtectedRoute";
 import { useAuth } from "../lib/AuthProvider";
-import belloLogo from "../../assets/Bello.png";
+import tiamoLogo from "../../assets/Tiamo.png";
 
 type NavItem = {
   name: string;
@@ -439,12 +439,12 @@ const AppSidebar: React.FC = () => {
           className="p-4 flex items-center gap-3 border-b border-gray-200/50 dark:border-white/[0.08] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
         >
           <div className="w-11 h-11 rounded-2xl overflow-hidden shrink-0 bg-white/80 dark:bg-white/5 border border-brand-500/20 p-1 flex items-center justify-center shadow-md shadow-brand-500/10">
-            <img src={belloLogo} alt="Bello Live Pro" className="w-full h-full object-contain" />
+            <img src={tiamoLogo} alt="Tiamo Live" className="w-full h-full object-contain" />
           </div>
           {(isExpanded || isHovered || isMobileOpen) && (
             <div className="flex flex-col overflow-hidden whitespace-nowrap">
               <span className="font-extrabold text-brand-500 dark:text-brand-400 text-base tracking-tight">
-                Bello Live Pro
+                Tiamo Live
               </span>
               <span className="text-gray-500 dark:text-gray-400 text-[11px] font-medium tracking-wide uppercase">
                 {role === ROLES.MOTHER

@@ -1,5 +1,5 @@
 const UPLOAD_API_URL =
-  import.meta.env.VITE_UPLOAD_API_URL || "https://api.sdstream.tech/api/upload";
+  import.meta.env.VITE_UPLOAD_API_URL || "https://api.tiamostream.tech/api/upload";
 
 /**
  * Uploads a file to the external API

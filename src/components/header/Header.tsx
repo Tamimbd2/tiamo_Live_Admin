@@ -80,8 +80,8 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
 
           <Link to="/" className="lg:hidden flex items-center gap-2">
             <img
-              src="/Bello.png"
-              alt="Bello Live Pro Logo"
+              src="/Tiamo.png"
+              alt="Tiamo Live Logo"
               className="w-9 h-9 object-contain"
             />
           </Link>

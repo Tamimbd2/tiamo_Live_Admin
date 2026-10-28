@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../lib/AuthProvider";
 import { useNavigate } from "react-router";
-import belloLogo from "../../../assets/Bello.png";
+import tiamoLogo from "../../../assets/Tiamo.png";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,8 +35,8 @@ export default function UserDropdown() {
       >
         <span className="overflow-hidden rounded-full h-10 w-10 border border-brand-500/20 dark:border-white/[0.08] bg-white/20 p-0.5 flex items-center justify-center">
           <img 
-            src={belloLogo} 
-            alt="Bello Live Pro Logo" 
+            src={tiamoLogo} 
+            alt="Tiamo Live Logo" 
             className="w-full h-full object-contain rounded-full"
           />
         </span>

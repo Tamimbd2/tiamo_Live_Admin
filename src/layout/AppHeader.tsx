@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
-import belloLogo from "../../assets/Bello.png";
+import tiamoLogo from "../../assets/Tiamo.png";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -84,9 +84,9 @@ const AppHeader: React.FC = () => {
 
           <Link to="/" className="lg:hidden flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl overflow-hidden bg-white/10 dark:bg-white/5 border border-brand-500/20 p-1 flex items-center justify-center shadow-md shadow-brand-500/10">
-              <img src={belloLogo} alt="Bello Live Pro" className="w-full h-full object-contain" />
+              <img src={tiamoLogo} alt="Tiamo Live" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-bold text-xl text-brand-500 dark:text-brand-400">Bello Live Pro</h1>
+            <h1 className="font-bold text-xl text-brand-500 dark:text-brand-400">Tiamo Live</h1>
           </Link>
 
           <button
