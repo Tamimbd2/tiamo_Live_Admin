@@ -47,6 +47,7 @@ import DeviceBannedManager from "./pages/DeviceBanned/DeviceBannedManager";
 import EmailBlockedManager from "./pages/EmailBlocked/EmailBlockedManager";
 import InboxManager from "./pages/Inbox/InboxManager";
 import SocialPostManager from "./pages/SocialPost/SocialPostManager";
+import AccountManage from "./pages/AccountManage/AccountManage";
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -89,6 +90,12 @@ export default function App() {
               <Route path="/users" element={
                 <ProtectedRoute allowedRoles={[ROLES.MOTHER]}>
                   <UserList />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/account-manage" element={
+                <ProtectedRoute allowedRoles={[ROLES.MOTHER, ROLES.SUPER_ADMIN, ROLES.ADMIN]}>
+                  <AccountManage />
                 </ProtectedRoute>
               } />
 

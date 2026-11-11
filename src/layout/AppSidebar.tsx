@@ -19,6 +19,7 @@ import {
   Bell,
   Percent,
   ShieldAlert,
+  UserCog,
 } from "lucide-react";
 
 import { useSidebar } from "../context/SidebarContext";
@@ -71,6 +72,12 @@ const navItems: NavItem[] = [
       ROLES.SUPER_ADMIN,
       ROLES.ADMIN,
     ],
+  },
+  {
+    name: "Account Manage",
+    icon: <UserCog size={22} />,
+    path: "/account-manage",
+    allowedRoles: [ROLES.MOTHER, ROLES.SUPER_ADMIN, ROLES.ADMIN],
   },
   {
     name: "User Management",
