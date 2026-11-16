@@ -25,9 +25,11 @@ import {
   Search,
   UserPlus,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Settings
 } from "lucide-react";
 import toast from "react-hot-toast";
+import EditResellerModal from "./EditResellerModal";
 
 interface CoinRequest {
   id: string;
@@ -61,6 +63,10 @@ export default function ResellerCoinManager() {
   const [transferAmount, setTransferAmount] = useState("");
   const [transferNote, setTransferNote] = useState("");
   const [transferring, setTransferring] = useState(false);
+
+  // Edit Reseller Modal State
+  const [editResellerOpen, setEditResellerOpen] = useState(false);
+  const [editingReseller, setEditingReseller] = useState<any>(null);
 
   // Create Reseller Modal State
   const [createResellerOpen, setCreateResellerOpen] = useState(false);
@@ -180,12 +186,15 @@ export default function ResellerCoinManager() {
       const fetchResellers = async () => {
         setResellersLoading(true);
         try {
-          const rQuery = query(collection(db, "users"), where("role", "==", "reseller"));
-          const rSnap = await getDocs(rQuery);
+          const rQuery1 = query(collection(db, "users"), where("role", "==", "reseller"));
+          const rQuery2 = query(collection(db, "users"), where("isReseller", "==", true));
+          const [snap1, snap2] = await Promise.all([getDocs(rQuery1), getDocs(rQuery2)]);
           
-          const uniqueResellers = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const map = new Map<string, any>();
+          snap1.docs.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
+          snap2.docs.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
           
-          setResellers(uniqueResellers);
+          setResellers(Array.from(map.values()));
         } catch (e) {
           console.error("Error fetching resellers:", e);
           toast.error("Failed to load resellers");
@@ -409,6 +418,10 @@ export default function ResellerCoinManager() {
         isreseller: true,
         resellerId: newResellerId,
         balance: foundUser.balance || 0,
+        canSendGift: false,
+        allowGift: false,
+        canTransfer: true,
+        allowTransaction: true,
       });
 
       toast.success("Reseller created successfully!", { id: tid });
@@ -548,13 +561,15 @@ export default function ResellerCoinManager() {
                 const resellerBal = reseller.balance ?? 0;
                 const role = reseller.role || "reseller";
 
+                const canSendGift = reseller.canSendGift === true || reseller.allowGift === true;
+                const canTransfer = reseller.canTransfer !== false && reseller.allowTransaction !== false;
+
                 return (
                   <div 
                     key={reseller.id} 
                     onClick={() => {
-                      setSelectedReseller(reseller);
-                      setTransferModalOpen(true);
-                      setTransferModalTab("send");
+                      setEditingReseller(reseller);
+                      setEditResellerOpen(true);
                     }}
                     className="bg-white dark:bg-gray-900 p-5 rounded-2xl border dark:border-gray-800 shadow-sm flex items-center justify-between gap-4 cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all group"
                   >
@@ -580,17 +595,54 @@ export default function ResellerCoinManager() {
                         <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                           <p className="font-mono">ID: {displayId}</p>
                           {reseller.agencyId && (
-                            <span className="inline-block mt-1.5 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 text-sm font-black font-mono rounded-lg tracking-wider">
+                            <span className="inline-block mt-1 px-2.5 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 text-xs font-black font-mono rounded-md tracking-wider">
                               Agency ID: {reseller.agencyId}
                             </span>
                           )}
                           {reseller.email && <p className="truncate">📧 {reseller.email}</p>}
                         </div>
+
+                        {/* Permission Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          {canSendGift ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                              🎁 Gifting Allowed
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                              🎁 Gifting Off
+                            </span>
+                          )}
+
+                          {canTransfer ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              🔄 Transfers Allowed
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                              🚫 Transfers Off
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+
                     <div className="text-right shrink-0 flex flex-col items-end">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div className="text-[10px] font-black uppercase text-gray-400 tracking-wider group-hover:text-blue-500 transition-colors">Reseller Balance</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReseller(reseller);
+                            setTransferModalOpen(true);
+                            setTransferModalTab("send");
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-1 transition-colors"
+                          title="Transfer Coins to Reseller"
+                        >
+                          <Coins size={12} /> Send Coins
+                        </button>
+
                         <div className="relative">
                           <button
                             onClick={(e) => {
@@ -605,22 +657,56 @@ export default function ResellerCoinManager() {
                           {activeDropdown === reseller.id && (
                             <>
                               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); }} />
-                              <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
+                              <div className="absolute right-0 mt-1 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
                                 <button
                                   onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdown(null);
+                                    setEditingReseller(reseller);
+                                    setEditResellerOpen(true);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 transition-colors"
+                                >
+                                  <Settings size={14} /> Edit & Permissions
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdown(null);
+                                    setSelectedReseller(reseller);
+                                    setTransferModalOpen(true);
+                                    setTransferModalTab("send");
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 transition-colors border-t border-gray-100 dark:border-gray-700"
+                                >
+                                  <Coins size={14} /> Send / History
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setActiveDropdown(null);
                                     handleDeleteReseller(e, reseller);
                                   }}
-                                  className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors"
+                                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors border-t border-gray-100 dark:border-gray-700"
                                 >
-                                  <Trash2 size={14} /> Remove
+                                  <Trash2 size={14} /> Remove Reseller
                                 </button>
                               </div>
                             </>
                           )}
                         </div>
                       </div>
-                      <div className="font-black text-lg font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
+
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReseller(reseller);
+                          setTransferModalOpen(true);
+                          setTransferModalTab("send");
+                        }}
+                        className="font-black text-lg font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end hover:scale-105 transition-transform"
+                        title="Click to view/transfer balance"
+                      >
                         <Coins size={16} />
                         {resellerBal.toLocaleString()}
                       </div>
@@ -1037,6 +1123,30 @@ export default function ResellerCoinManager() {
             </div>
           </div>
         </div>
+      )}
+      {/* Edit Reseller Modal */}
+      {editResellerOpen && editingReseller && (
+        <EditResellerModal
+          isOpen={editResellerOpen}
+          onClose={() => {
+            setEditResellerOpen(false);
+            setEditingReseller(null);
+          }}
+          reseller={editingReseller}
+          onUpdated={(updated) => {
+            setResellers((prev) =>
+              prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
+            );
+          }}
+          onRemoved={(resellerId) => {
+            setResellers((prev) => prev.filter((r) => r.id !== resellerId));
+          }}
+          onOpenTransfer={(r) => {
+            setSelectedReseller(r);
+            setTransferModalOpen(true);
+            setTransferModalTab("send");
+          }}
+        />
       )}
     </div>
   );

@@ -38,9 +38,11 @@ import {
   Unlock,
   Key,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AgencyModal from "./AgencyModal";
+import EditAgencyModal from "./EditAgencyModal";
 
 interface AgencyData {
   id: string;
@@ -149,10 +151,12 @@ function DetailModal({
   agency,
   onClose,
   onToggleStatus,
+  onEdit,
 }: {
   agency: AgencyData;
   onClose: () => void;
   onToggleStatus: (id: string, status: string) => void;
+  onEdit?: (agency: AgencyData) => void;
 }) {
   const [zoomImg, setZoomImg] = useState<string | null>(null);
   const [hosts, setHosts] = useState<any[]>([]);
@@ -558,7 +562,15 @@ function DetailModal({
         </div>
 
         {/* Footer */}
-        <div className="px-7 py-5 border-t dark:border-gray-800 flex gap-3">
+        <div className="px-7 py-5 border-t dark:border-gray-800 flex flex-wrap gap-3">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(agency)}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all text-sm cursor-pointer shadow-md shadow-blue-500/20"
+            >
+              <Pencil size={15} /> Edit Agency
+            </button>
+          )}
           <button
             onClick={() => { onToggleStatus(agency.id, agency.status); onClose(); }}
             className={`flex-1 flex items-center justify-center gap-2 font-bold py-3 rounded-2xl transition-all ${
@@ -572,7 +584,7 @@ function DetailModal({
           </button>
           <button
             onClick={onClose}
-            className="flex-1 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-2xl transition-all hover:bg-gray-200"
+            className="px-6 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-2xl transition-all hover:bg-gray-200 cursor-pointer"
           >
             Close
           </button>
@@ -709,6 +721,8 @@ export default function AgencyManager() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedAgency, setSelectedAgency] = useState<AgencyData | null>(null);
   const [passwordAgency, setPasswordAgency] = useState<AgencyData | null>(null);
+  const [editingAgency, setEditingAgency] = useState<AgencyData | null>(null);
+  const [editAgencyModalOpen, setEditAgencyModalOpen] = useState(false);
 
   // Normalize agency_applications fields → AgencyData shape
   const normalize = (d: Record<string, unknown>, id: string): AgencyData => ({
@@ -1313,7 +1327,14 @@ export default function AgencyManager() {
                       </td>
 
                       {/* Agency & Logo */}
-                      <td className="px-6 py-4">
+                      <td
+                        onClick={() => {
+                          setEditingAgency(agency);
+                          setEditAgencyModalOpen(true);
+                        }}
+                        className="px-6 py-4 cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors"
+                        title="Click to edit agency"
+                      >
                         <div className="flex items-center gap-4">
                           <div className="relative w-12 h-12 flex-shrink-0">
                             <OwnerAvatar agency={agency} isLogo={true} />
@@ -1322,8 +1343,11 @@ export default function AgencyManager() {
                             />
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900 dark:text-white text-[15px]">
+                            <p className="font-bold text-gray-900 dark:text-white text-[15px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
                               {agency.name || "—"}
+                              <span className="opacity-0 group-hover:opacity-100 text-blue-500 text-xs transition-opacity font-normal">
+                                ✎
+                              </span>
                             </p>
                             <p className="text-xs text-gray-400 font-medium mt-0.5">
                               🌍 {agency.country || "Unknown"}
@@ -1339,7 +1363,14 @@ export default function AgencyManager() {
                       </td>
 
                       {/* Owner Info */}
-                      <td className="px-6 py-4">
+                      <td
+                        onClick={() => {
+                          setEditingAgency(agency);
+                          setEditAgencyModalOpen(true);
+                        }}
+                        className="px-6 py-4 cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors"
+                        title="Click to edit agency"
+                      >
                         <div className="flex items-center gap-3">
                           <OwnerAvatar agency={agency} />
                           <div>
@@ -1384,6 +1415,16 @@ export default function AgencyManager() {
                       {/* Operations */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingAgency(agency);
+                              setEditAgencyModalOpen(true);
+                            }}
+                            title="Edit Agency"
+                            className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-600 rounded-xl transition-all cursor-pointer"
+                          >
+                            <Pencil size={15} />
+                          </button>
                           <button
                             onClick={() => setSelectedAgency(agency)}
                             title="View Details"
@@ -1465,6 +1506,27 @@ export default function AgencyManager() {
           agency={selectedAgency}
           onClose={() => setSelectedAgency(null)}
           onToggleStatus={toggleStatus}
+          onEdit={(ag) => {
+            setSelectedAgency(null);
+            setEditingAgency(ag);
+            setEditAgencyModalOpen(true);
+          }}
+        />
+      )}
+
+      {editAgencyModalOpen && editingAgency && (
+        <EditAgencyModal
+          isOpen={editAgencyModalOpen}
+          agency={editingAgency}
+          onClose={() => {
+            setEditAgencyModalOpen(false);
+            setEditingAgency(null);
+          }}
+          onUpdated={(updated) => {
+            setAgencies((prev) =>
+              prev.map((a) => (a.id === editingAgency.id ? { ...a, ...updated } : a))
+            );
+          }}
         />
       )}
 
