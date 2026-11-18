@@ -9,6 +9,9 @@ export interface Gift {
   tier?: "free" | "premium";
   imageURL: string;
   iconURL: string;
+  soundURL?: string;
+  soundUrl?: string;
+  duration?: number | string;
   format?: "svga" | "gif" | string;
   animationType?: "svga" | "gif" | string;
   createdAt?: Timestamp | null;

@@ -1,4 +1,5 @@
-import { Trash2, Edit3, Coins, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Trash2, Edit3, Coins, Sparkles, Volume2, Clock } from "lucide-react";
 import { SVGAPreview } from "../../components/SVGAPreview";
 import { Gift } from "./types";
 
@@ -11,6 +12,7 @@ interface GiftCardProps {
 }
 
 export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftCardProps) => {
+  const [isPlayingSound, setIsPlayingSound] = useState(false);
   const isSVGA =
     gift.format === "svga" ||
     gift.animationType === "svga" ||
@@ -20,6 +22,18 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
     gift.animationType === "gif" ||
     Boolean(gift.imageURL?.toLowerCase().includes(".gif"));
   const isPremium = gift.tier === "premium";
+  const soundUrl = gift.soundURL || gift.soundUrl;
+  const durationSec = gift.duration || (isGIF ? 4 : 10);
+
+  const handlePlaySound = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!soundUrl) return;
+    const audio = new Audio(soundUrl);
+    setIsPlayingSound(true);
+    audio.onended = () => setIsPlayingSound(false);
+    audio.onerror = () => setIsPlayingSound(false);
+    audio.play().catch(() => setIsPlayingSound(false));
+  };
 
   return (
     <div
@@ -50,6 +64,22 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
           {isGIF && <Sparkles size={9} />}
           {isGIF ? "GIF" : "SVGA"}
         </span>
+
+        {soundUrl && (
+          <button
+            type="button"
+            onClick={handlePlaySound}
+            className={`text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wider flex items-center gap-0.5 shadow-sm transition-all ${
+              isPlayingSound
+                ? "bg-amber-500 text-white animate-pulse"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200"
+            }`}
+            title="Click to preview attached sound"
+          >
+            <Volume2 size={9} />
+            Sound
+          </button>
+        )}
       </div>
 
       <div
@@ -87,7 +117,13 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
       </div>
 
       <div className="px-1">
-        <p className="text-[10px] font-bold text-blue-500 uppercase">{gift.category}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-blue-500 uppercase">{gift.category}</p>
+          <span className="text-[10px] font-bold text-gray-400 flex items-center gap-0.5" title="Display duration">
+            <Clock size={10} />
+            {durationSec}s
+          </span>
+        </div>
         <h3 className="font-bold dark:text-white text-sm truncate">{gift.name}</h3>
         {isPremium ? (
           <div className="flex items-center gap-1 text-orange-500 mt-1">

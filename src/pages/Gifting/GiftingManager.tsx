@@ -49,7 +49,8 @@ export default function GiftingManager() {
     formData: Partial<Gift>,
     iconFile: File | null,
     animationFile: File | null,
-    format: "svga" | "gif"
+    format: "svga" | "gif",
+    soundFile: File | null
   ) => {
     if (!editData) {
       if (format === "svga" && (!iconFile || !animationFile)) {
@@ -66,6 +67,12 @@ export default function GiftingManager() {
     try {
       let finalImageUrl = editData?.imageURL || "";
       let finalIconUrl = editData?.iconURL || editData?.imageURL || "";
+      let finalSoundUrl =
+        editData?.soundURL ||
+        editData?.soundUrl ||
+        formData.soundURL ||
+        formData.soundUrl ||
+        "";
 
       if (animationFile) {
         finalImageUrl = await handleUpload(animationFile);
@@ -74,6 +81,9 @@ export default function GiftingManager() {
         finalIconUrl = await handleUpload(iconFile);
       } else if (format === "gif" && !finalIconUrl) {
         finalIconUrl = finalImageUrl;
+      }
+      if (soundFile) {
+        finalSoundUrl = await handleUpload(soundFile);
       }
 
       const tier = formData.tier || "free";
@@ -91,6 +101,9 @@ export default function GiftingManager() {
         tier,
         imageURL: finalImageUrl,
         iconURL: finalIconUrl,
+        soundURL: finalSoundUrl,
+        soundUrl: finalSoundUrl,
+        duration: Number(formData.duration) || (format === "gif" ? 4 : 10),
         format,
         animationType: format,
         isActive: true,
