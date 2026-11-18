@@ -26,7 +26,11 @@ import {
   UserPlus,
   Trash2,
   MoreVertical,
-  Settings
+  Settings,
+  ShieldAlert,
+  MinusCircle,
+  Lock,
+  Unlock
 } from "lucide-react";
 import toast from "react-hot-toast";
 import EditResellerModal from "./EditResellerModal";
@@ -55,7 +59,7 @@ export default function ResellerCoinManager() {
   
   // Transfer Modal State
   const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [transferModalTab, setTransferModalTab] = useState<"send" | "history" | "user_transfers">("send");
+  const [transferModalTab, setTransferModalTab] = useState<"send" | "deduct" | "history" | "user_transfers">("send");
   const [userTransfers, setUserTransfers] = useState<any[]>([]);
   const [transfersLoading, setTransfersLoading] = useState(false);
   const [transfersUsersCache, setTransfersUsersCache] = useState<Record<string, any>>({});
@@ -347,6 +351,142 @@ export default function ResellerCoinManager() {
     }
   };
 
+  const handleDirectDeduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedReseller || !transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) <= 0) {
+      toast.error("Please enter a valid amount to deduct.");
+      return;
+    }
+
+    const amount = Number(transferAmount);
+    const liveResellerBal = selectedReseller.balance ?? 0;
+    if (amount > liveResellerBal) {
+      toast.error(`Cannot deduct ${amount.toLocaleString()} coins. Reseller only has ${liveResellerBal.toLocaleString()} coins.`);
+      return;
+    }
+
+    const resellerName = selectedReseller.displayName || selectedReseller.name || "this reseller";
+    if (!window.confirm(`Are you sure you want to DEDUCT ${amount.toLocaleString()} coins from ${resellerName}?\n\nTheir balance will be reduced from ${liveResellerBal.toLocaleString()} to ${(liveResellerBal - amount).toLocaleString()} coins.`)) {
+      return;
+    }
+
+    setTransferring(true);
+    const tid = toast.loading("Deducting balance...");
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        let targetRef = doc(db, "users", selectedReseller.id);
+        let targetSnap = await transaction.get(targetRef);
+
+        if (!targetSnap.exists()) {
+          targetRef = doc(db, "agencies", selectedReseller.id);
+          targetSnap = await transaction.get(targetRef);
+          
+          if (!targetSnap.exists()) {
+             throw new Error("Target agency or reseller not found.");
+          }
+        }
+
+        const data = targetSnap.data();
+        const currentBalance = data.balance ?? 0;
+        if (amount > currentBalance) {
+          throw new Error(`Reseller currently only has ${currentBalance.toLocaleString()} coins.`);
+        }
+
+        const newBalance = Math.max(0, currentBalance - amount);
+        
+        transaction.update(targetRef, { 
+          balance: newBalance
+        });
+
+        const newReqRef = doc(collection(db, "reseller_coin_requests"));
+        transaction.set(newReqRef, {
+          agencyId: selectedReseller.id,
+          agencyName: resellerName,
+          resellerName: resellerName,
+          amount: amount,
+          status: "deducted",
+          note: transferNote ? `Admin Deduct: ${transferNote}` : "Admin Deduct (Extra coins reclaimed)",
+          timestamp: new Date(),
+          processedAt: new Date(),
+          type: "admin_deduct"
+        });
+
+        const logRef = doc(collection(db, "coin_history"));
+        transaction.set(logRef, {
+          userId: selectedReseller.id,
+          amount: amount,
+          action: "deduct",
+          reason: transferNote || "Extra coins reclaimed by Admin",
+          adminUid: "admin",
+          timestamp: new Date()
+        });
+      });
+
+      toast.success(`Successfully deducted ${amount.toLocaleString()} coins from ${resellerName}!`, { id: tid });
+      setTransferModalOpen(false);
+      setSelectedReseller(null);
+      setTransferAmount("");
+      setTransferNote("");
+      
+      setResellers(prev => prev.map(r => {
+        if (r.id === selectedReseller.id) {
+          return {
+            ...r,
+            balance: Math.max(0, (r.balance ?? 0) - amount)
+          };
+        }
+        return r;
+      }));
+
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to deduct balance", { id: tid });
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const handleToggleCoinBlock = async (e: React.MouseEvent, reseller: any) => {
+    e.stopPropagation();
+    const isBlocked = Boolean(reseller.isCoinBlocked || reseller.coinBlocked);
+    const actionText = isBlocked ? "Unblock" : "Block";
+    const resellerName = reseller.displayName || reseller.name || "this reseller";
+    
+    if (!window.confirm(`Are you sure you want to ${actionText.toUpperCase()} coins for "${resellerName}"?\n\n${!isBlocked ? "They will NOT be able to transfer, spend, gift, or use coins anywhere in the app." : "Their coin access will be restored."}`)) {
+      return;
+    }
+
+    const tid = toast.loading(`${actionText}ing coins...`);
+    try {
+      const newBlocked = !isBlocked;
+      await updateDoc(doc(db, "users", reseller.id), {
+        isCoinBlocked: newBlocked,
+        coinBlocked: newBlocked,
+        canTransfer: !newBlocked,
+        allowTransaction: !newBlocked,
+        canSendGift: !newBlocked,
+        allowGift: !newBlocked,
+        updatedAt: new Date(),
+      });
+
+      setResellers(prev => prev.map(r => r.id === reseller.id ? {
+        ...r,
+        isCoinBlocked: newBlocked,
+        coinBlocked: newBlocked,
+        canTransfer: !newBlocked,
+        allowTransaction: !newBlocked,
+        canSendGift: !newBlocked,
+        allowGift: !newBlocked,
+      } : r));
+
+      toast.success(`Coins ${newBlocked ? "BLOCKED" : "UNBLOCKED"} successfully for ${resellerName}!`, { id: tid });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update coin block status", { id: tid });
+    }
+  };
+
   const handleSearchUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchUserId.trim()) return;
@@ -604,6 +744,16 @@ export default function ResellerCoinManager() {
 
                         {/* Permission Badges */}
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          {Boolean(reseller.isCoinBlocked || reseller.coinBlocked) ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 flex items-center gap-1">
+                              <ShieldAlert size={10} /> Coins Blocked
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                              Coins Active
+                            </span>
+                          )}
+
                           {canSendGift ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                               🎁 Gifting Allowed
@@ -643,6 +793,20 @@ export default function ResellerCoinManager() {
                           <Coins size={12} /> Send Coins
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedReseller(reseller);
+                            setTransferModalOpen(true);
+                            setTransferModalTab("deduct");
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/40 flex items-center gap-1 transition-colors"
+                          title="Deduct Coins from Reseller"
+                        >
+                          <MinusCircle size={12} /> Deduct
+                        </button>
+
                         <div className="relative">
                           <button
                             onClick={(e) => {
@@ -679,7 +843,36 @@ export default function ResellerCoinManager() {
                                   }}
                                   className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-2 transition-colors border-t border-gray-100 dark:border-gray-700"
                                 >
-                                  <Coins size={14} /> Send / History
+                                  <Coins size={14} /> Send Coins
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdown(null);
+                                    setSelectedReseller(reseller);
+                                    setTransferModalOpen(true);
+                                    setTransferModalTab("deduct");
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors border-t border-gray-100 dark:border-gray-700"
+                                >
+                                  <MinusCircle size={14} /> Deduct Coins
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    setActiveDropdown(null);
+                                    handleToggleCoinBlock(e, reseller);
+                                  }}
+                                  className={`w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2 transition-colors border-t border-gray-100 dark:border-gray-700 ${
+                                    Boolean(reseller.isCoinBlocked || reseller.coinBlocked)
+                                      ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                                      : "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                  }`}
+                                >
+                                  {Boolean(reseller.isCoinBlocked || reseller.coinBlocked) ? (
+                                    <><Unlock size={14} /> Unblock Coins</>
+                                  ) : (
+                                    <><Lock size={14} /> Block All Coins</>
+                                  )}
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -832,9 +1025,27 @@ export default function ResellerCoinManager() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
-              <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
-                <Coins className="text-blue-500" /> Action
-              </h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
+                  <Coins className="text-blue-500" /> Reseller Actions
+                </h3>
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleCoinBlock(e, selectedReseller)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    Boolean(selectedReseller.isCoinBlocked || selectedReseller.coinBlocked)
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 hover:bg-red-200"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200"
+                  }`}
+                  title={Boolean(selectedReseller.isCoinBlocked || selectedReseller.coinBlocked) ? "Click to unblock coins" : "Click to block all coins"}
+                >
+                  {Boolean(selectedReseller.isCoinBlocked || selectedReseller.coinBlocked) ? (
+                    <><Lock size={12} /> Coins Blocked</>
+                  ) : (
+                    <><Unlock size={12} /> Block Coins</>
+                  )}
+                </button>
+              </div>
               <button 
                 onClick={() => {
                   setTransferModalOpen(false);
@@ -848,18 +1059,26 @@ export default function ResellerCoinManager() {
               </button>
             </div>
             
-            <div className="flex p-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 shrink-0">
+            <div className="flex p-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 shrink-0 gap-1 overflow-x-auto">
               <button
                 onClick={() => setTransferModalTab("send")}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${
+                className={`flex-1 py-2 px-3 text-xs md:text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
                   transferModalTab === "send" ? "bg-white dark:bg-gray-700 text-blue-600 shadow-sm" : "text-gray-500"
                 }`}
               >
                 Send Balance
               </button>
               <button
+                onClick={() => setTransferModalTab("deduct")}
+                className={`flex-1 py-2 px-3 text-xs md:text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
+                  transferModalTab === "deduct" ? "bg-white dark:bg-gray-700 text-red-600 shadow-sm" : "text-gray-500 hover:text-red-600"
+                }`}
+              >
+                Deduct Balance
+              </button>
+              <button
                 onClick={() => setTransferModalTab("history")}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${
+                className={`flex-1 py-2 px-3 text-xs md:text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
                   transferModalTab === "history" ? "bg-white dark:bg-gray-700 text-blue-600 shadow-sm" : "text-gray-500"
                 }`}
               >
@@ -867,7 +1086,7 @@ export default function ResellerCoinManager() {
               </button>
               <button
                 onClick={() => setTransferModalTab("user_transfers")}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${
+                className={`flex-1 py-2 px-3 text-xs md:text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
                   transferModalTab === "user_transfers" ? "bg-white dark:bg-gray-700 text-blue-600 shadow-sm" : "text-gray-500"
                 }`}
               >
@@ -898,7 +1117,7 @@ export default function ResellerCoinManager() {
                         <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Available</p>
                         <p className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
                           <Coins size={14} />
-                          {(selectedReseller.agencybalence ?? selectedReseller.agencyBalance ?? 0).toLocaleString()}
+                          {(selectedReseller.balance ?? selectedReseller.agencybalence ?? selectedReseller.agencyBalance ?? 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -943,6 +1162,87 @@ export default function ResellerCoinManager() {
                         <><Loader2 className="animate-spin" size={20} /> Processing...</>
                       ) : (
                         <><CheckCircle2 size={20} /> Confirm Send</>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : transferModalTab === "deduct" ? (
+                <form onSubmit={handleDirectDeduct} className="p-6 space-y-5">
+                  <div className="bg-red-50 dark:bg-red-950/20 rounded-xl p-4 border border-red-100 dark:border-red-900/40">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-semibold">Deducting Coins From</p>
+                    <div className="flex justify-between items-start mt-1">
+                      <div>
+                        <p className="font-bold text-lg dark:text-white">
+                          {selectedReseller.displayName || selectedReseller.name || "Unknown Reseller"}
+                        </p>
+                        <p className="text-xs font-mono text-red-600 dark:text-red-400 mt-1">
+                          ID: {selectedReseller.displayId || selectedReseller.uid}
+                        </p>
+                        {selectedReseller.agencyId && (
+                          <p className="text-xs font-mono text-purple-600 dark:text-purple-400 mt-0.5 font-bold">
+                            Agency ID: {selectedReseller.agencyId}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Current Balance</p>
+                        <p className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
+                          <Coins size={14} />
+                          {(selectedReseller.balance ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Amount to Deduct (Coins)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <MinusCircle className="text-red-500" size={18} />
+                      </div>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        max={selectedReseller.balance ?? 0}
+                        value={transferAmount}
+                        onChange={(e) => setTransferAmount(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-red-500 dark:text-white text-lg font-bold transition-all"
+                        placeholder="e.g. 50000"
+                      />
+                    </div>
+                    {Number(transferAmount) > 0 && (
+                      <p className="text-xs font-semibold text-gray-500 mt-2 flex justify-between">
+                        <span>Remaining Balance:</span>
+                        <span className={`font-mono font-bold ${((selectedReseller.balance ?? 0) - Number(transferAmount)) < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                          {Math.max(0, (selectedReseller.balance ?? 0) - Number(transferAmount)).toLocaleString()} coins
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Reason / Note (Required)</label>
+                    <input
+                      type="text"
+                      required
+                      value={transferNote}
+                      onChange={(e) => setTransferNote(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-red-500 dark:text-white transition-all"
+                      placeholder="e.g. Extra coins sent by mistake"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={transferring || !transferAmount || Number(transferAmount) <= 0 || Number(transferAmount) > (selectedReseller.balance ?? 0)}
+                      className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
+                    >
+                      {transferring ? (
+                        <><Loader2 className="animate-spin" size={20} /> Processing...</>
+                      ) : (
+                        <><MinusCircle size={20} /> Confirm Deduction</>
                       )}
                     </button>
                   </div>

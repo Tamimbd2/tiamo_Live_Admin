@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import {
   doc,
   runTransaction,
+  updateDoc,
   collection,
   getDocs,
   where,
@@ -20,7 +21,9 @@ import {
   Coins,
   Gift,
   Gamepad2,
-  Loader2
+  Loader2,
+  Lock,
+  Unlock
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { UserInfo } from "./CoinManager";
@@ -45,6 +48,41 @@ export const ActionPanel = ({ selectedUser, onClose }: ActionPanelProps) => {
   const [amount, setAmount] = useState<number>(0);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+
+  useEffect(() => {
+    if (selectedUser) {
+      setIsBlocked(Boolean(selectedUser.isCoinBlocked || (selectedUser as any).coinBlocked));
+    }
+  }, [selectedUser]);
+
+  const handleToggleCoinBlock = async () => {
+    if (!selectedUser?.uid) return;
+    const nextState = !isBlocked;
+    const name = selectedUser.displayName || "this user";
+    if (!window.confirm(`Are you sure you want to ${nextState ? "BLOCK" : "UNBLOCK"} coins for ${name}?\n\n${nextState ? "When blocked, this user cannot spend, send gifts, or transfer coins anywhere in the app." : "When unblocked, this user can resume normal coin spending."}`)) {
+      return;
+    }
+
+    setBlocking(true);
+    const tid = toast.loading(`${nextState ? "Blocking" : "Unblocking"} coins...`);
+    try {
+      const userRef = doc(db, "users", selectedUser.uid);
+      await updateDoc(userRef, {
+        isCoinBlocked: nextState,
+        coinBlocked: nextState,
+        updatedAt: serverTimestamp(),
+      });
+      setIsBlocked(nextState);
+      toast.success(`Coins ${nextState ? "blocked" : "unblocked"} successfully!`, { id: tid });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update coin block status", { id: tid });
+    } finally {
+      setBlocking(false);
+    }
+  };
 
   const fetchHistory = async () => {
     if (!selectedUser?.uid) return;
@@ -300,6 +338,51 @@ export const ActionPanel = ({ selectedUser, onClose }: ActionPanelProps) => {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Coin Block Status Bar */}
+          <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+            isBlocked
+              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50"
+              : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${isBlocked ? "bg-red-100 text-red-600 dark:bg-red-900/40" : "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40"}`}>
+                {isBlocked ? <Lock size={20} /> : <Unlock size={20} />}
+              </div>
+              <div>
+                <p className="text-sm font-bold dark:text-white flex items-center gap-1.5">
+                  Coin Status: {isBlocked ? (
+                    <span className="text-red-600 dark:text-red-400 font-black">BLOCKED / FROZEN</span>
+                  ) : (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">ACTIVE</span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {isBlocked
+                    ? "User is blocked from spending, gifting, or transferring coins anywhere"
+                    : "User has permission to spend, gift, and use their coins normally"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={blocking}
+              onClick={handleToggleCoinBlock}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                isBlocked
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-red-600 hover:bg-red-700 text-white"
+              } disabled:opacity-50 shrink-0`}
+            >
+              {blocking ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : isBlocked ? (
+                <><Unlock size={14} /> Unblock Coins</>
+              ) : (
+                <><Lock size={14} /> Block Coins</>
+              )}
+            </button>
           </div>
 
           {/* Mode Selector Tabs */}

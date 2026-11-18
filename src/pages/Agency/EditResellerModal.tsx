@@ -51,6 +51,7 @@ export default function EditResellerModal({
   // Permission states
   const [canSendGift, setCanSendGift] = useState(false);
   const [canTransfer, setCanTransfer] = useState(true);
+  const [isCoinBlocked, setIsCoinBlocked] = useState(false);
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,8 @@ export default function EditResellerModal({
       setCanSendGift(Boolean(reseller.canSendGift === true || reseller.allowGift === true));
       // canTransfer: default true unless disabled
       setCanTransfer(reseller.canTransfer !== false && reseller.allowTransaction !== false);
+      // isCoinBlocked:
+      setIsCoinBlocked(Boolean(reseller.isCoinBlocked || reseller.coinBlocked));
     }
   }, [reseller]);
 
@@ -126,10 +129,12 @@ export default function EditResellerModal({
       const updateData: any = {
         displayName: name.trim(),
         name: name.trim(),
-        canSendGift: Boolean(canSendGift),
-        allowGift: Boolean(canSendGift),
-        canTransfer: Boolean(canTransfer),
-        allowTransaction: Boolean(canTransfer),
+        canSendGift: isCoinBlocked ? false : Boolean(canSendGift),
+        allowGift: isCoinBlocked ? false : Boolean(canSendGift),
+        canTransfer: isCoinBlocked ? false : Boolean(canTransfer),
+        allowTransaction: isCoinBlocked ? false : Boolean(canTransfer),
+        isCoinBlocked: Boolean(isCoinBlocked),
+        coinBlocked: Boolean(isCoinBlocked),
         updatedAt: serverTimestamp(),
       };
 
@@ -446,6 +451,41 @@ export default function EditResellerModal({
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Permission 3: Block / Freeze All Coins */}
+            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+              isCoinBlocked 
+                ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50" 
+                : "bg-gray-50 dark:bg-gray-800/40 border-gray-100 dark:border-gray-800 hover:border-red-200"
+            }`}>
+              <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                <div className={`p-2.5 rounded-xl ${isCoinBlocked ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400" : "bg-gray-200 text-gray-500 dark:bg-gray-700"}`}>
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm dark:text-white flex items-center gap-2">
+                    Block / Freeze All Coins (কয়েন ব্লক)
+                    {isCoinBlocked && (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                        BLOCKED
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    When blocked, this reseller cannot spend, transfer, send gifts, or use their coins anywhere.
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={isCoinBlocked}
+                  onChange={(e) => setIsCoinBlocked(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
               </label>
             </div>
           </div>

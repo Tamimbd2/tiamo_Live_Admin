@@ -44,6 +44,9 @@ export default function UserDetailsModal({
   );
   const [email, setEmail] = useState(user.email || "");
   const [isActive, setIsActive] = useState<boolean>(user.isActive ?? true);
+  const [isCoinBlocked, setIsCoinBlocked] = useState<boolean>(
+    Boolean(user.isCoinBlocked || user.coinBlocked)
+  );
 
   // Photo states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -125,6 +128,8 @@ export default function UserDetailsModal({
         name: trimmedName,
         email: trimmedEmail,
         isActive: isActive,
+        isCoinBlocked: Boolean(isCoinBlocked),
+        coinBlocked: Boolean(isCoinBlocked),
         photoUrl: finalPhotoUrl,
         avatar: finalPhotoUrl,
         photo: finalPhotoUrl,
@@ -140,6 +145,8 @@ export default function UserDetailsModal({
         name: trimmedName,
         email: trimmedEmail,
         isActive: isActive,
+        isCoinBlocked: Boolean(isCoinBlocked),
+        coinBlocked: Boolean(isCoinBlocked),
         photoUrl: finalPhotoUrl,
         avatar: finalPhotoUrl,
         photo: finalPhotoUrl,
@@ -326,7 +333,7 @@ export default function UserDetailsModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Email Address
@@ -353,6 +360,24 @@ export default function UserDetailsModal({
                 >
                   <option value="active">Active (Full Access)</option>
                   <option value="inactive">Inactive / Suspended</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                  Coin Spending Status
+                </label>
+                <select
+                  value={isCoinBlocked ? "blocked" : "active"}
+                  onChange={(e) => setIsCoinBlocked(e.target.value === "blocked")}
+                  className={`w-full px-4 py-3 rounded-2xl border bg-gray-50/50 dark:bg-gray-800/50 font-bold text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all cursor-pointer ${
+                    isCoinBlocked
+                      ? "border-red-400 text-red-600 dark:text-red-400 focus:ring-red-500"
+                      : "border-gray-300 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 focus:ring-blue-500"
+                  }`}
+                >
+                  <option value="active">Active (Can Use Coins)</option>
+                  <option value="blocked">🚫 Blocked / Frozen</option>
                 </select>
               </div>
             </div>

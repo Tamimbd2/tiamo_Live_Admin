@@ -1,4 +1,4 @@
-import { Coins, User, Gem } from "lucide-react";
+import { Coins, User, Gem, Lock } from "lucide-react";
 import { UserInfo } from "./CoinManager";
 
 interface UserCardProps {
@@ -39,9 +39,16 @@ export const UserCard = ({ user, isSelected, onSelect }: UserCardProps) => {
             </span>
           )}
         </h4>
-        <p className="text-xs text-gray-500 font-medium truncate">
-          ID: {user.displayId || user.uid}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-gray-500 font-medium truncate">
+            ID: {user.displayId || user.uid}
+          </p>
+          {Boolean(user.isCoinBlocked || (user as any).coinBlocked) && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 flex items-center gap-0.5 shrink-0">
+              <Lock size={9} /> Coins Blocked
+            </span>
+          )}
+        </div>
         <p className="text-[10px] text-gray-400 truncate hidden sm:block">
           {user.email}
         </p>

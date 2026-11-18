@@ -16,6 +16,8 @@ export interface UserInfo {
   role?: string;
   diamonds?: number;
   isHost?: boolean;
+  isCoinBlocked?: boolean;
+  coinBlocked?: boolean;
 }
 
 export default function CoinManager() {

@@ -135,9 +135,16 @@ export default function UserTable({
 
               {/* Status */}
               <TableCell className="py-3 pl-3 text-nowrap text-center">
-                <Badge color={user.isActive ? "success" : "warning"}>
-                  {user.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <div className="flex flex-col items-center gap-1">
+                  <Badge color={user.isActive ? "success" : "warning"}>
+                    {user.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                  {Boolean(user.isCoinBlocked || user.coinBlocked) && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      Coins Blocked
+                    </span>
+                  )}
+                </div>
               </TableCell>
 
               {/* Actions: View/Edit Details + Delete */}
