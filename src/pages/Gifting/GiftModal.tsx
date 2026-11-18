@@ -216,9 +216,9 @@ export const GiftModal = ({
             type="button"
             onClick={() => {
               setFormat("svga");
-              setDuration("10");
               setAnimationFile(null);
               setGifPreviewUrl("");
+              handleRemoveSound();
             }}
             className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all ${
               format === "svga"
@@ -255,14 +255,14 @@ export const GiftModal = ({
             onSubmit(
               {
                 ...formData,
-                duration: Number(duration) || (format === "gif" ? 4 : 10),
-                soundURL: soundPreviewUrl ? (formData.soundURL || formData.soundUrl || "") : "",
-                soundUrl: soundPreviewUrl ? (formData.soundURL || formData.soundUrl || "") : "",
+                duration: format === "gif" ? Number(duration) || 4 : undefined,
+                soundURL: format === "gif" && soundPreviewUrl ? (formData.soundURL || formData.soundUrl || "") : "",
+                soundUrl: format === "gif" && soundPreviewUrl ? (formData.soundURL || formData.soundUrl || "") : "",
               },
               iconFile,
               animationFile,
               format,
-              soundFile
+              format === "gif" ? soundFile : null
             );
           }}
         >
@@ -315,8 +315,53 @@ export const GiftModal = ({
             </div>
           </div>
 
-          {/* Coin Price & Display Duration Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Coin Price & Optional Display Duration for GIF */}
+          {format === "gif" ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label
+                  className={`text-[10px] font-black ml-1 uppercase tracking-wider ${
+                    isPremium ? "text-gray-400" : "text-gray-300 dark:text-gray-600"
+                  }`}
+                >
+                  Coin Price {!isPremium && <span className="normal-case font-normal">(free tier)</span>}
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  disabled={!isPremium}
+                  className={`w-full p-3 rounded-2xl outline-none font-mono border text-sm transition-all ${
+                    isPremium
+                      ? "bg-gray-50 dark:bg-gray-800 dark:text-white border focus:border-blue-500 cursor-text"
+                      : "bg-gray-100 dark:bg-gray-800/40 text-gray-400 dark:text-gray-600 border-gray-100 dark:border-gray-800 cursor-not-allowed"
+                  }`}
+                  value={isPremium ? formData.price || "" : 0}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider flex items-center justify-between">
+                  <span>Duration</span>
+                  <span className="text-pink-600 dark:text-pink-400 font-bold">{duration || "4"}s</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    placeholder="4"
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl outline-none dark:text-white border focus:border-blue-500 text-sm font-mono transition-all pr-12"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                  />
+                  <span className="absolute right-3.5 top-3 text-xs font-bold text-gray-400 pointer-events-none">
+                    sec
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
             <div className="space-y-1">
               <label
                 className={`text-[10px] font-black ml-1 uppercase tracking-wider ${
@@ -329,7 +374,7 @@ export const GiftModal = ({
                 type="number"
                 placeholder="0"
                 disabled={!isPremium}
-                className={`w-full p-3 rounded-2xl outline-none font-mono border text-sm transition-all ${
+                className={`w-full p-3.5 rounded-2xl outline-none font-mono border text-sm transition-all ${
                   isPremium
                     ? "bg-gray-50 dark:bg-gray-800 dark:text-white border focus:border-blue-500 cursor-text"
                     : "bg-gray-100 dark:bg-gray-800/40 text-gray-400 dark:text-gray-600 border-gray-100 dark:border-gray-800 cursor-not-allowed"
@@ -338,28 +383,7 @@ export const GiftModal = ({
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
             </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider flex items-center justify-between">
-                <span>Duration</span>
-                <span className="text-pink-600 dark:text-pink-400 font-bold">{duration || (format === "gif" ? 4 : 10)}s</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  placeholder={format === "gif" ? "4" : "10"}
-                  className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl outline-none dark:text-white border focus:border-blue-500 text-sm font-mono transition-all pr-12"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                />
-                <span className="absolute right-3.5 top-3 text-xs font-bold text-gray-400 pointer-events-none">
-                  sec
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Animation & Icon Upload Grid */}
           <div className="grid grid-cols-2 gap-3">
@@ -441,74 +465,76 @@ export const GiftModal = ({
             </div>
           </div>
 
-          {/* Sound Effect (Optional Audio for GIF / SVGA) */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <Volume2 size={12} className="text-amber-500" />
-                Gift Sound Effect (অডিও / সাউন্ড)
-              </span>
-              <span className="text-[10px] font-medium text-gray-400">
-                MP3 / WAV (Optional)
-              </span>
-            </label>
+          {/* Sound Effect (ONLY FOR GIF FORMAT) */}
+          {format === "gif" && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Volume2 size={12} className="text-amber-500" />
+                  Gift Sound Effect (অডিও / সাউন্ড)
+                </span>
+                <span className="text-[10px] font-medium text-gray-400">
+                  MP3 / WAV (Optional)
+                </span>
+              </label>
 
-            <div className="p-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2 overflow-hidden flex-1">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <Volume2 size={16} />
+              <div className="p-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700/80 flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Volume2 size={16} />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                      {soundFile
+                        ? soundFile.name
+                        : soundPreviewUrl
+                          ? "Attached Sound Effect"
+                          : "No Sound Attached"}
+                    </span>
+                    <span className="text-[10px] text-gray-400 truncate">
+                      {soundFile || soundPreviewUrl
+                        ? `Plays for ${duration || 4}s with GIF`
+                        : "Optional audio played with gift"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
-                    {soundFile
-                      ? soundFile.name
-                      : soundPreviewUrl
-                        ? "Attached Sound Effect"
-                        : "No Sound Attached"}
-                  </span>
-                  <span className="text-[10px] text-gray-400 truncate">
-                    {soundFile || soundPreviewUrl
-                      ? `Plays for ${duration || 4}s with gift`
-                      : "Optional audio played with gift"}
-                  </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {soundPreviewUrl && (
+                    <button
+                      type="button"
+                      onClick={togglePlaySound}
+                      className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm flex items-center justify-center"
+                      title={isPlayingSound ? "Pause Sound" : "Play Sound Preview"}
+                    >
+                      {isPlayingSound ? <Pause size={13} /> : <Play size={13} />}
+                    </button>
+                  )}
+
+                  <label className="px-2.5 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer transition-colors">
+                    <span>{soundFile || soundPreviewUrl ? "Change" : "Add Sound"}</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="audio/*,.mp3,.wav,.aac,.m4a,.ogg"
+                      onChange={(e) => handleSoundChange(e.target.files?.[0] || null)}
+                    />
+                  </label>
+
+                  {(soundFile || soundPreviewUrl) && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveSound}
+                      className="p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remove Sound"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 shrink-0">
-                {soundPreviewUrl && (
-                  <button
-                    type="button"
-                    onClick={togglePlaySound}
-                    className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm flex items-center justify-center"
-                    title={isPlayingSound ? "Pause Sound" : "Play Sound Preview"}
-                  >
-                    {isPlayingSound ? <Pause size={13} /> : <Play size={13} />}
-                  </button>
-                )}
-
-                <label className="px-2.5 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer transition-colors">
-                  <span>{soundFile || soundPreviewUrl ? "Change" : "Add Sound"}</span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="audio/*,.mp3,.wav,.aac,.m4a,.ogg"
-                    onChange={(e) => handleSoundChange(e.target.files?.[0] || null)}
-                  />
-                </label>
-
-                {(soundFile || soundPreviewUrl) && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveSound}
-                    className="p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
-                    title="Remove Sound"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
               </div>
             </div>
-          </div>
+          )}
 
           <button
             type="submit"

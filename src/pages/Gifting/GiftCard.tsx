@@ -65,7 +65,7 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
           {isGIF ? "GIF" : "SVGA"}
         </span>
 
-        {soundUrl && (
+        {isGIF && soundUrl && (
           <button
             type="button"
             onClick={handlePlaySound}
@@ -119,10 +119,12 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
       <div className="px-1">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-bold text-blue-500 uppercase">{gift.category}</p>
-          <span className="text-[10px] font-bold text-gray-400 flex items-center gap-0.5" title="Display duration">
-            <Clock size={10} />
-            {durationSec}s
-          </span>
+          {isGIF && (
+            <span className="text-[10px] font-bold text-gray-400 flex items-center gap-0.5" title="Display duration">
+              <Clock size={10} />
+              {durationSec}s
+            </span>
+          )}
         </div>
         <h3 className="font-bold dark:text-white text-sm truncate">{gift.name}</h3>
         {isPremium ? (
