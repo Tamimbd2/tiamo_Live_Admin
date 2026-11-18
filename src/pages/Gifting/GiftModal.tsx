@@ -24,7 +24,13 @@ export const GiftModal = ({ isOpen, onClose, onSubmit, initialData, isUploading 
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData });
+      const resolvedSubCat =
+        initialData.subCategory && initialData.subCategory !== "Gift"
+          ? initialData.subCategory
+          : initialData.category && initialData.category !== "Gift"
+            ? initialData.category
+            : "Lucky";
+      setFormData({ ...initialData, category: resolvedSubCat });
     } else {
       setFormData({ name: "", price: "", category: "Lucky", tier: "free" });
     }

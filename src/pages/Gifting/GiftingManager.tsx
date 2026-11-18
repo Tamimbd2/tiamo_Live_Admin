@@ -58,11 +58,17 @@ export default function GiftingManager() {
       if (svgaFile) finalImageUrl = await handleUpload(svgaFile);
 
       const tier = formData.tier || "free";
+      const safeSubCategory =
+        formData.category && formData.category !== "Gift"
+          ? formData.category
+          : formData.subCategory && formData.subCategory !== "Gift"
+            ? formData.subCategory
+            : "Lucky";
       const payload = {
         name: formData.name,
-        price: tier === "free" ? 0 : Number(formData.price),
+        price: tier === "free" ? 0 : Number(formData.price || 0),
         category: "Gift",
-        subCategory: formData.category,
+        subCategory: safeSubCategory,
         tier,
         imageURL: finalImageUrl,
         iconURL: finalIconUrl,
