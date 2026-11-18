@@ -12,6 +12,7 @@ import {
 import { db } from "../../lib/firebase";
 import UserTable, { User } from "./UserTable";
 import UserDetailsModal from "./UserDetailsModal";
+import UserCoinModal from "./UserCoinModal";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -36,6 +37,10 @@ export default function UserList() {
   // User Details & Edit modal state
   const [selectedUserForDetails, setSelectedUserForDetails] = useState<User | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  // User Coin Deduct/Add Modal state
+  const [selectedUserForCoins, setSelectedUserForCoins] = useState<User | null>(null);
+  const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
 
   const usersPerPage = 10;
 
@@ -125,6 +130,31 @@ export default function UserList() {
   const handleOpenDetails = (user: User) => {
     setSelectedUserForDetails(user);
     setIsDetailsModalOpen(true);
+  };
+
+  // Open Coin Deduct/Add Modal
+  const handleOpenCoins = (user: User) => {
+    setSelectedUserForCoins(user);
+    setIsCoinModalOpen(true);
+  };
+
+  // Callback when user coins are deducted or added
+  const handleUserCoinsUpdated = (userId: string, newBalance: number) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, diamonds: newBalance, balance: newBalance } : u
+      )
+    );
+    setSelectedUserForCoins((prev) =>
+      prev?.id === userId
+        ? { ...prev, diamonds: newBalance, balance: newBalance }
+        : prev
+    );
+    setSelectedUserForDetails((prev) =>
+      prev?.id === userId
+        ? { ...prev, diamonds: newBalance, balance: newBalance }
+        : prev
+    );
   };
 
   // Callback when user details (name/photo/etc) are updated
@@ -260,6 +290,7 @@ export default function UserList() {
             isAllSelected={isAllSelected}
             handleDeleteUser={handleDeleteSingleUser}
             onViewUser={handleOpenDetails}
+            onManageCoins={handleOpenCoins}
           />
         )}
       </div>
@@ -338,6 +369,20 @@ export default function UserList() {
             setSelectedUserForDetails(null);
           }}
           onUserUpdated={handleUserUpdated}
+          onManageCoins={handleOpenCoins}
+        />
+      )}
+
+      {/* User Coin Deduct/Add Modal */}
+      {isCoinModalOpen && selectedUserForCoins && (
+        <UserCoinModal
+          user={selectedUserForCoins}
+          isOpen={isCoinModalOpen}
+          onClose={() => {
+            setIsCoinModalOpen(false);
+            setSelectedUserForCoins(null);
+          }}
+          onUserCoinsUpdated={handleUserCoinsUpdated}
         />
       )}
     </div>

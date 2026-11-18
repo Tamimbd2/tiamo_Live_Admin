@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Badge from "../../components/ui/badge/Badge";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, Coins } from "lucide-react";
 
 export interface User {
   id: string;
@@ -16,10 +16,13 @@ export interface User {
   displayId?: string;
   role?: string;
   diamonds?: number;
+  balance?: number;
   totalReceived?: number;
   giftDiamonds?: number;
   createdAt?: any;
   lastActivity?: any;
+  isCoinBlocked?: boolean;
+  coinBlocked?: boolean;
   [key: string]: any;
 }
 
@@ -31,6 +34,7 @@ interface UserTableProps {
   isAllSelected: boolean;
   handleDeleteUser: (id: string) => void;
   onViewUser: (user: User) => void;
+  onManageCoins: (user: User) => void;
 }
 
 export default function UserTable({
@@ -41,6 +45,7 @@ export default function UserTable({
   isAllSelected,
   handleDeleteUser,
   onViewUser,
+  onManageCoins,
 }: UserTableProps) {
   return (
     <Table>
@@ -57,6 +62,7 @@ export default function UserTable({
           </TableCell>
           <TableCell className="py-3 text-start pl-6" isHeader>User</TableCell>
           <TableCell className="py-3 pl-3 text-start" isHeader>Display ID</TableCell>
+          <TableCell className="py-3 pl-3 text-start" isHeader>Coins (💎)</TableCell>
           <TableCell className="py-3 pl-3 text-start" isHeader>Email</TableCell>
           <TableCell className="py-3 text-center" isHeader>Status</TableCell>
           <TableCell className="py-3 text-center" isHeader>Actions</TableCell>
@@ -65,6 +71,7 @@ export default function UserTable({
       <TableBody>
         {users.map((user) => {
           const isSelected = selectedUserIds.includes(user.id);
+          const userCoins = Number(user.diamonds ?? user.balance ?? 0);
 
           return (
             <TableRow
@@ -125,6 +132,25 @@ export default function UserTable({
                 )}
               </TableCell>
 
+              {/* Coins (Diamonds/Balance) - Clickable to open coin management */}
+              <TableCell
+                className="py-3 pl-3 cursor-pointer"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onManageCoins(user);
+                }}
+              >
+                <div 
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                  title="Click to deduct or add coins"
+                >
+                  <Coins size={14} className="text-amber-500" />
+                  <span className="font-mono font-bold text-xs">
+                    {userCoins.toLocaleString()}
+                  </span>
+                </div>
+              </TableCell>
+
               {/* Email */}
               <TableCell
                 className="py-3 text-sm text-gray-500 dark:text-gray-400 pl-3 cursor-pointer"
@@ -147,9 +173,17 @@ export default function UserTable({
                 </div>
               </TableCell>
 
-              {/* Actions: View/Edit Details + Delete */}
+              {/* Actions: View/Edit Details + Deduct/Add Coins + Delete */}
               <TableCell className="py-3 text-center" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                 <div className="flex items-center justify-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onManageCoins(user)}
+                    className="p-2 rounded-xl text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors"
+                    title="Deduct or Add Coins (কয়েন কেটে নিন / যোগ করুন)"
+                  >
+                    <Coins size={17} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => onViewUser(user)}

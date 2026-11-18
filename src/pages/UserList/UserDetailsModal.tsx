@@ -27,6 +27,7 @@ interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUserUpdated: (updatedUser: User) => void;
+  onManageCoins?: (user: User) => void;
 }
 
 export default function UserDetailsModal({
@@ -34,6 +35,7 @@ export default function UserDetailsModal({
   isOpen,
   onClose,
   onUserUpdated,
+  onManageCoins,
 }: UserDetailsModalProps) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -448,14 +450,26 @@ export default function UserDetailsModal({
                 </span>
               </div>
 
-              {/* Diamonds */}
+              {/* Diamonds / Balance Coins */}
               <div className="p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 flex flex-col justify-between">
-                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 font-semibold">
-                  <Gem size={13} className="text-cyan-500" />
-                  Diamonds
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 font-semibold">
+                    <Gem size={13} className="text-cyan-500" />
+                    Coins / Diamonds
+                  </span>
+                  {onManageCoins && (
+                    <button
+                      type="button"
+                      onClick={() => onManageCoins(user)}
+                      className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                      title="Deduct or Add Coins"
+                    >
+                      Deduct / Add
+                    </button>
+                  )}
+                </div>
                 <span className="font-bold text-gray-900 dark:text-white mt-1">
-                  {(user.diamonds ?? user.totalReceived ?? 0).toLocaleString()}
+                  {(user.diamonds ?? user.balance ?? user.totalReceived ?? 0).toLocaleString()}
                 </span>
               </div>
 
