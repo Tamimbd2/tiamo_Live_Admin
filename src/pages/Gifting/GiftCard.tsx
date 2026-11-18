@@ -1,4 +1,4 @@
-import { Trash2, Edit3, Coins } from "lucide-react";
+import { Trash2, Edit3, Coins, Sparkles } from "lucide-react";
 import { SVGAPreview } from "../../components/SVGAPreview";
 import { Gift } from "./types";
 
@@ -11,7 +11,14 @@ interface GiftCardProps {
 }
 
 export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftCardProps) => {
-  const isSVGA = gift.imageURL?.toLowerCase().endsWith(".svga");
+  const isSVGA =
+    gift.format === "svga" ||
+    gift.animationType === "svga" ||
+    Boolean(gift.imageURL?.toLowerCase().endsWith(".svga"));
+  const isGIF =
+    gift.format === "gif" ||
+    gift.animationType === "gif" ||
+    Boolean(gift.imageURL?.toLowerCase().includes(".gif"));
   const isPremium = gift.tier === "premium";
 
   return (
@@ -21,17 +28,29 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
         isSelected ? "border-blue-500 ring-2 ring-blue-500/10" : "border-gray-200 dark:border-gray-800"
       }`}
     >
-      {gift.tier && (
+      <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1 z-10">
+        {gift.tier && (
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shadow-sm ${
+              isPremium
+                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+            }`}
+          >
+            {gift.tier}
+          </span>
+        )}
         <span
-          className={`absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase z-10 ${
-            isPremium
-              ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-              : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5 shadow-sm ${
+            isGIF
+              ? "bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50"
+              : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50"
           }`}
         >
-          {gift.tier}
+          {isGIF && <Sparkles size={9} />}
+          {isGIF ? "GIF" : "SVGA"}
         </span>
-      )}
+      </div>
 
       <div
         className={`absolute top-2 right-2 flex gap-1 transition-all z-10 ${
@@ -58,7 +77,12 @@ export const GiftCard = ({ gift, onEdit, onDelete, isSelected, onSelect }: GiftC
         {isSVGA ? (
           <SVGAPreview url={gift.imageURL} />
         ) : (
-          <img src={gift.imageURL} alt={gift.name} className="max-h-full object-contain" />
+          <img
+            src={gift.imageURL}
+            alt={gift.name}
+            className="max-h-full object-contain"
+            loading="lazy"
+          />
         )}
       </div>
 
